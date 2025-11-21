@@ -5,25 +5,13 @@ from tqdm import tqdm, trange
 from typing import List, Optional
 from collections import deque, defaultdict
 
+from mesh_extend.Module.mesh_loader import MeshLoader
 
-class MeshSplitter(object):
+
+class MeshSplitter(MeshLoader):
     def __init__(self, mesh_file_path: Optional[str] = None) -> None:
-        self.mesh: Optional[o3d.geometry.TriangleMesh] = None
-
-        if mesh_file_path is not None:
-            self.loadMeshFile(mesh_file_path)
+        MeshLoader.__init__(self, mesh_file_path)
         return
-
-    def loadMeshFile(self, mesh_file_path: str) -> bool:
-        if not os.path.exists(mesh_file_path):
-            print('[ERROR][MeshSplitter::loadMeshFile]')
-            print('\t mesh file not exist!')
-            print('\t mesh_file_path:', mesh_file_path)
-            return False
-
-        self.mesh = o3d.io.read_triangle_mesh(mesh_file_path)
-        return True
-
 
     def createVEMap(self, triangles: np.ndarray) -> dict:
         edge_to_tri = defaultdict(list)
@@ -66,7 +54,7 @@ class MeshSplitter(object):
         return adj
 
     def splitMesh(self) -> List[o3d.geometry.TriangleMesh]:
-        if self.mesh is None:
+        if not self.isValid():
             print('[ERROR][MeshSplitter::splitMesh]')
             print('\t mesh not exist! please load mesh first')
             return []
@@ -127,3 +115,14 @@ class MeshSplitter(object):
             return []
 
         return self.splitMesh()
+
+    def saveSubMeshes(
+        self,
+        submeshes: List[o3d.geometry.TriangleMesh],
+        save_submesh_folder_path: str,
+    ) -> bool:
+        os.makedirs(save_submesh_folder_path, exist_ok=True)
+        for i, submesh in enumerate(submeshes):
+            curr_save_mesh_file_path = save_submesh_folder_path + str(i) + '.ply'
+            o3d.io.write_triangle_mesh(curr_save_mesh_file_path, submesh, write_ascii=True)
+        return True
