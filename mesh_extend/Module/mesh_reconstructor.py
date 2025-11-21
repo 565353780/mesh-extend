@@ -56,7 +56,7 @@ class MeshReconstructor(MeshLoader):
 
         return self.reconMesh()
 
-    def reconMeshFolder(self, mesh_folder_path: str) -> dict:
+    def reconMeshFolder(self, mesh_folder_path: str, save_mesh_folder_path: str) -> dict:
         if not os.path.exists(mesh_folder_path):
             print('[ERROR][MeshReconstructor::reconMeshFolder]')
             print('\t mesh folder not exist!')
@@ -75,21 +75,8 @@ class MeshReconstructor(MeshLoader):
 
             recon_mesh = self.reconMeshFile(mesh_file_path)
 
-            recon_mesh_dict[mesh_filename] = recon_mesh
+            curr_save_mesh_file_path = save_mesh_folder_path + mesh_filename
+
+            o3d.io.write_triangle_mesh(curr_save_mesh_file_path, recon_mesh, write_ascii=True)
 
         return recon_mesh_dict
-
-    def saveReconMesh(self, recon_mesh: o3d.geometry.TriangleMesh, save_mesh_file_path: str) -> bool:
-        createFileFolder(save_mesh_file_path)
-
-        o3d.io.write_triangle_mesh(save_mesh_file_path, recon_mesh, write_ascii=True)
-        return True
-
-    def saveReconMeshDict(self, mesh_dict: dict, save_mesh_folder_path: str) -> bool:
-        os.makedirs(save_mesh_folder_path, exist_ok=True)
-
-        for filename, mesh in mesh_dict.items():
-            curr_save_mesh_file_path = save_mesh_folder_path + filename
-            o3d.io.write_triangle_mesh(curr_save_mesh_file_path, mesh, write_ascii=True)
-
-        return True
