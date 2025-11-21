@@ -3,7 +3,7 @@ import numpy as np
 import open3d as o3d
 from tqdm import tqdm, trange
 from typing import List, Optional
-from collections import deque
+from collections import deque, defaultdict
 
 
 class MeshSplitter(object):
@@ -24,24 +24,37 @@ class MeshSplitter(object):
         self.mesh = o3d.io.read_triangle_mesh(mesh_file_path)
         return True
 
-    def createVEMap(self, triangles: np.ndarray) -> dict:
-        edge_to_tri = {}
-        print('[INFO][MeshSplitter::createVEMap]')
-        print('\t start construct VE map...')
-        for tri_idx, tri in enumerate(tqdm(triangles)):
-            v0, v1, v2 = tri
-            # 每条边标准化为 (min, max) 保证无序
-            edges = [
-                (min(v0, v1), max(v0, v1)),
-                (min(v1, v2), max(v1, v2)),
-                (min(v2, v0), max(v2, v0))
-            ]
-            for e in edges:
-                if e not in edge_to_tri:
-                    edge_to_tri[e] = []
-                edge_to_tri[e].append(tri_idx)
 
-        return edge_to_tri
+    def createVEMap(self, triangles: np.ndarray) -> dict:
+        edge_to_tri = defaultdict(list)
+
+        for tri_idx, tri in enumerate(tqdm(triangles, desc="VE Map", unit="tri", disable=False)):
+            v0, v1, v2 = tri
+
+            # 边1: v0-v1
+            if v0 < v1:
+                e0 = (v0, v1)
+            else:
+                e0 = (v1, v0)
+
+            # 边2: v1-v2
+            if v1 < v2:
+                e1 = (v1, v2)
+            else:
+                e1 = (v2, v1)
+
+            # 边3: v2-v0
+            if v2 < v0:
+                e2 = (v2, v0)
+            else:
+                e2 = (v0, v2)
+
+            # 直接添加 (defaultdict 自动处理新键)
+            edge_to_tri[e0].append(tri_idx)
+            edge_to_tri[e1].append(tri_idx)
+            edge_to_tri[e2].append(tri_idx)
+
+        return dict(edge_to_tri)
 
     def createNeighboorTable(self, triangle_num: int, edge_to_tri: dict) -> list:
         adj = [[] for _ in range(triangle_num)]
